@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { v2 as cloudinary } from 'cloudinary';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
@@ -29,11 +30,14 @@ interface Message {
   read: boolean;
 }
 
-const useRedis = !!process.env.KV_URL;
+const useCloudDB = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_CLOUD_NAME !== 'your-cloud-name');
 
-function getRedis() {
-  const { Redis } = require('@upstash/redis');
-  return new Redis({ url: process.env.KV_URL!, token: process.env.KV_TOKEN! });
+if (useCloudDB) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
 }
 
 function ensureDataDir() {
@@ -62,19 +66,36 @@ function writeJSONLocal<T>(filePath: string, data: T) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
+async function readJSONCloud<T>(key: string): Promise<T | null> {
+  try {
+    const resource = `rk-mandhar-data/${key}`;
+    const result = await cloudinary.api.resource(resource, { resource_type: 'raw' });
+    const res = await fetch(result.secure_url);
+    if (!res.ok) return null;
+    return JSON.parse(await res.text());
+  } catch { return null; }
+}
+
+async function writeJSONCloud<T>(key: string, data: T): Promise<void> {
+  const buffer = Buffer.from(JSON.stringify(data, null, 2));
+  await new Promise<void>((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: 'rk-mandhar-data', public_id: key, resource_type: 'raw', overwrite: true, invalidate: true },
+      (err) => { if (err) reject(err); else resolve(); }
+    );
+    stream.end(buffer);
+  });
+}
+
 async function readJSON<T>(key: string, defaultValue: T): Promise<T> {
-  if (useRedis) {
-    try {
-      const redis = getRedis();
-      const data = await redis.get(key);
-      if (data) return data as T;
-    } catch {}
-    // Seed from local files if Redis is empty (first deploy)
+  if (useCloudDB) {
+    const data = await readJSONCloud<T>(key);
+    if (data) return data;
+    // Seed from local files on first deploy
     const filePath = key === 'products' ? PRODUCTS_FILE : MESSAGES_FILE;
     if (fs.existsSync(filePath)) {
       const local = readJSONLocal<T>(filePath, defaultValue);
-      const redis = getRedis();
-      await redis.set(key, JSON.parse(JSON.stringify(local)));
+      await writeJSONCloud(key, local);
       return local;
     }
     return defaultValue;
@@ -84,24 +105,12 @@ async function readJSON<T>(key: string, defaultValue: T): Promise<T> {
 }
 
 async function writeJSON<T>(key: string, data: T): Promise<void> {
-  if (useRedis) {
-    try {
-      const redis = getRedis();
-      await redis.set(key, JSON.parse(JSON.stringify(data)));
-      return;
-    } catch (e) {
-      console.error('Redis write failed:', e);
-    }
+  if (useCloudDB) {
+    await writeJSONCloud(key, data);
+    return;
   }
   const filePath = key === 'products' ? PRODUCTS_FILE : MESSAGES_FILE;
-  try {
-    writeJSONLocal(filePath, data);
-  } catch (e: any) {
-    if (process.env.VERCEL && !useRedis) {
-      throw new Error('Cannot save on Vercel without a database. Go to Vercel Dashboard → Storage → Create KV Database, then add KV_URL and KV_TOKEN to Environment Variables and redeploy.');
-    }
-    throw e;
-  }
+  writeJSONLocal(filePath, data);
 }
 
 export async function getProducts(): Promise<Product[]> {
