@@ -1,0 +1,8 @@
+{
+  "host": "smtp.gmail.com",
+  "port": 587,
+  "user": "chaudharyrajat759@gmail.com",
+  "pass": "",
+  "from": "chaudharyrajat759@gmail.com",
+  "to": "chaudharyrajat759@gmail.com"
+}

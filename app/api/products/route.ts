@@ -1,0 +1,39 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getProducts, createProduct } from '@/lib/db';
+import { verifyToken } from '@/lib/auth';
+
+function isAdmin(req: NextRequest): boolean {
+  const token = req.headers.get('cookie')
+    ?.split(';')
+    .find(c => c.trim().startsWith('admin_token='))
+    ?.split('=')[1];
+  return token ? verifyToken(token) !== null : false;
+}
+
+export async function GET() {
+  const products = getProducts();
+  return NextResponse.json(products);
+}
+
+export async function POST(req: NextRequest) {
+  if (!isAdmin(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const body = await req.json();
+    const product = createProduct({
+      nameEn: body.nameEn,
+      nameHi: body.nameHi,
+      descEn: body.descEn,
+      descHi: body.descHi,
+      category: body.category,
+      price: Number(body.price),
+      image: body.image || '',
+      featured: Boolean(body.featured),
+    });
+    return NextResponse.json(product, { status: 201 });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });
+  }
+}
