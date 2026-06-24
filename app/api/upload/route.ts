@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import { v2 as cloudinary } from 'cloudinary';
 import { verifyToken } from '@/lib/auth';
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 function isAdmin(req: NextRequest): boolean {
   const token = req.headers.get('cookie')
@@ -27,15 +32,18 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const ext = file.name.split('.').pop();
-    const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    const result = await new Promise<any>((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: 'rk-mandhar', resource_type: 'image' },
+        (err, result) => {
+          if (err) reject(err);
+          else resolve(result);
+        }
+      );
+      stream.end(buffer);
+    });
 
-    await mkdir(uploadDir, { recursive: true });
-    await writeFile(path.join(uploadDir, filename), buffer);
-
-    const url = `/uploads/${filename}`;
-    return NextResponse.json({ url, filename });
+    return NextResponse.json({ url: result.secure_url, filename: result.public_id });
   } catch (error) {
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
