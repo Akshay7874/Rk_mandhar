@@ -14,7 +14,7 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const product = getProduct(params.id);
+  const product = await getProduct(params.id);
   if (!product) {
     return NextResponse.json({ error: 'Product not found' }, { status: 404 });
   }
@@ -31,7 +31,7 @@ export async function PUT(
 
   try {
     const body = await req.json();
-    const product = updateProduct(params.id, {
+    const product = await updateProduct(params.id, {
       nameEn: body.nameEn,
       nameHi: body.nameHi,
       descEn: body.descEn,
@@ -46,8 +46,8 @@ export async function PUT(
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
     return NextResponse.json(product);
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to update product' }, { status: 500 });
   }
 }
 
@@ -59,7 +59,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const deleted = deleteProduct(params.id);
+  const deleted = await deleteProduct(params.id);
   if (!deleted) {
     return NextResponse.json({ error: 'Product not found' }, { status: 404 });
   }

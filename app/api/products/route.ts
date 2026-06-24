@@ -11,7 +11,7 @@ function isAdmin(req: NextRequest): boolean {
 }
 
 export async function GET() {
-  const products = getProducts();
+  const products = await getProducts();
   return NextResponse.json(products);
 }
 
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const product = createProduct({
+    const product = await createProduct({
       nameEn: body.nameEn,
       nameHi: body.nameHi,
       descEn: body.descEn,
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       featured: Boolean(body.featured),
     });
     return NextResponse.json(product, { status: 201 });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to create product' }, { status: 500 });
   }
 }

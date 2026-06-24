@@ -18,7 +18,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const success = markMessageRead(params.id);
+  const success = await markMessageRead(params.id);
   if (!success) {
     return NextResponse.json({ error: 'Message not found' }, { status: 404 });
   }
@@ -33,7 +33,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const success = deleteMessage(params.id);
+  const success = await deleteMessage(params.id);
   if (!success) {
     return NextResponse.json({ error: 'Message not found' }, { status: 404 });
   }

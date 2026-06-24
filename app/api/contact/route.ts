@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const newMessage = createMessage({
+    const newMessage = await createMessage({
       name,
       email,
       phone,

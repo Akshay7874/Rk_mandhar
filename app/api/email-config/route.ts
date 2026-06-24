@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       to: body.to,
     });
     return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to update config' }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || 'Failed to update config' }, { status: 500 });
   }
 }
