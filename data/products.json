@@ -70,17 +70,5 @@
     "image": "/uploads/1782296570943-t0fj57.jpg",
     "featured": false,
     "createdAt": "2026-06-24T09:02:50.584Z"
-  },
-  {
-    "nameEn": "fd",
-    "nameHi": "dfdf",
-    "descEn": "df",
-    "descHi": "df",
-    "category": "vermicompost",
-    "price": 90,
-    "image": "https://res.cloudinary.com/dg48pglos/image/upload/v1782304319/rk-mandhar/bzof2xshiazdkpiwn65o.png",
-    "featured": false,
-    "id": "1782304323625",
-    "createdAt": "2026-06-24T12:32:03.625Z"
   }
 ]
